@@ -2,7 +2,7 @@
 
 # NexCoreProxy Agent 一键安装脚本
 # 使用方法: 
-#   bash <(curl -Ls https://raw.githubusercontent.com/DoBestone/NexCoreProxy-Agent/main/install.sh) -u admin -pass YourPassword
+#   bash <(curl -Ls https://raw.githubusercontent.com/DoBestone/NexCoreProxy-Agent/main/install.sh) -p 54321 -u admin -pass YourPassword
 
 set -e
 
@@ -13,15 +13,19 @@ plain='\033[0m'
 
 APP_NAME="NexCoreProxy Agent"
 INSTALL_DIR="/usr/local/x-ui"
-SERVICE_PORT=54321
 
-# 默认配置
-ADMIN_USER="ncp_admin"
+# 默认配置（随机生成）
+SERVICE_PORT=""
+ADMIN_USER=""
 ADMIN_PASS=""
 
 # 解析参数
 while [[ $# -gt 0 ]]; do
     case $1 in
+        -p|--port)
+            SERVICE_PORT="$2"
+            shift 2
+            ;;
         -u|--user)
             ADMIN_USER="$2"
             shift 2
@@ -31,14 +35,15 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         -h|--help)
-            echo "使用方法: $0 [选项]"
+            echo "使用方法: $0 -p PORT -u USER -pass PASSWORD"
             echo ""
             echo "选项:"
-            echo "  -u, --user USER       管理员用户名 (默认: ncp_admin)"
+            echo "  -p, --port PORT       面板端口 (必填)"
+            echo "  -u, --user USER       管理员用户名 (必填)"
             echo "  -pass, --password     管理员密码 (必填)"
             echo ""
             echo "示例:"
-            echo "  $0 -u admin -pass MyPassword123"
+            echo "  $0 -p 54321 -u admin -pass MyPassword123"
             exit 0
             ;;
         *)
@@ -52,9 +57,16 @@ echo -e "${green}  $APP_NAME 安装脚本${plain}"
 echo -e "${green}========================================${plain}"
 
 # 检查必填参数
+if [[ -z "$SERVICE_PORT" ]]; then
+    echo -e "${red}错误: 请通过 -p 参数设置面板端口${plain}"
+    exit 1
+fi
+if [[ -z "$ADMIN_USER" ]]; then
+    echo -e "${red}错误: 请通过 -u 参数设置管理员用户名${plain}"
+    exit 1
+fi
 if [[ -z "$ADMIN_PASS" ]]; then
     echo -e "${red}错误: 请通过 -pass 参数设置管理员密码${plain}"
-    echo "示例: $0 -pass YourPassword123"
     exit 1
 fi
 
@@ -74,6 +86,8 @@ else
 fi
 
 echo "系统: $OS"
+echo "端口: $SERVICE_PORT"
+echo "用户: $ADMIN_USER"
 
 # 安装依赖
 echo -e "${yellow}安装依赖...${plain}"
@@ -124,7 +138,7 @@ wget -q -O /usr/bin/x-ui "https://raw.githubusercontent.com/vaxilu/x-ui/main/x-u
 chmod +x /usr/bin/x-ui
 chmod +x x-ui.sh
 
-# 配置固定端口和账号密码
+# 配置端口和账号密码
 echo -e "${yellow}配置服务...${plain}"
 ./x-ui setting -port ${SERVICE_PORT}
 ./x-ui setting -username "${ADMIN_USER}"
@@ -158,12 +172,6 @@ if systemctl is-active --quiet x-ui; then
     echo -e "面板地址: ${green}http://${SERVER_IP}:${SERVICE_PORT}${plain}"
     echo -e "用户名:   ${green}${ADMIN_USER}${plain}"
     echo -e "密码:     ${green}${ADMIN_PASS}${plain}"
-    echo ""
-    echo -e "${yellow}主控面板配置信息:${plain}"
-    echo "  IP: ${SERVER_IP}"
-    echo "  端口: ${SERVICE_PORT}"
-    echo "  用户名: ${ADMIN_USER}"
-    echo "  密码: ${ADMIN_PASS}"
     echo ""
 else
     echo -e "${red}安装失败，请检查日志${plain}"
