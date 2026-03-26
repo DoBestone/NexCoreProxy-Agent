@@ -158,6 +158,9 @@ systemctl daemon-reload
 systemctl enable x-ui
 systemctl start x-ui
 
+# 创建 VERSION 文件
+echo "v1.0.0" > $INSTALL_DIR/VERSION
+
 # 获取服务器 IP
 SERVER_IP=$(curl -s ifconfig.me || curl -s ip.sb || echo "YOUR_IP")
 
