@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# NexCoreProxy Agent 一键安装脚本
+# NexCoreProxy Agent 一键安装脚本 (基于 3x-ui)
 # 使用方法: 
 #   bash <(curl -Ls https://raw.githubusercontent.com/DoBestone/NexCoreProxy-Agent/main/install.sh) -p 54321 -u admin -pass YourPassword
 
@@ -11,7 +11,7 @@ green='\033[0;32m'
 yellow='\033[0;33m'
 plain='\033[0m'
 
-APP_NAME="NexCoreProxy Agent"
+APP_NAME="3X-UI Agent"
 INSTALL_DIR="/usr/local/x-ui"
 
 # 默认配置（随机生成）
@@ -112,13 +112,15 @@ elif [[ "$ARCH" == "aarch64" ]]; then
     ARCH="arm64"
 fi
 
-echo -e "${yellow}下载 x-ui...${plain}"
-last_version=$(curl -Ls "https://api.github.com/repos/vaxilu/x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-if [[ ! -n "$last_version" ]]; then
-    last_version="0.3.2"
+echo -e "${yellow}下载 3x-ui...${plain}"
+LATEST_VERSION=$(curl -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+if [[ ! -n "$LATEST_VERSION" ]]; then
+    LATEST_VERSION="v2.8.11"
 fi
 
-wget -q -O x-ui-linux-${ARCH}.tar.gz "https://github.com/vaxilu/x-ui/releases/download/${last_version}/x-ui-linux-${ARCH}.tar.gz" || {
+echo "最新版本: $LATEST_VERSION"
+
+wget -q -O x-ui-linux-${ARCH}.tar.gz "https://github.com/MHSanaei/3x-ui/releases/download/${LATEST_VERSION}/x-ui-linux-${ARCH}.tar.gz" || {
     echo -e "${red}下载失败${plain}"
     exit 1
 }
@@ -130,11 +132,14 @@ rm -f x-ui-linux-${ARCH}.tar.gz
 cd x-ui
 chmod +x x-ui bin/xray-linux-${ARCH}
 
+# 写入版本文件
+echo "$LATEST_VERSION" > $INSTALL_DIR/VERSION
+
 # 复制服务文件
 cp -f x-ui.service /etc/systemd/system/
 
 # 下载管理脚本
-wget -q -O /usr/bin/x-ui "https://raw.githubusercontent.com/vaxilu/x-ui/main/x-ui.sh"
+wget -q -O /usr/bin/x-ui "https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh"
 chmod +x /usr/bin/x-ui
 chmod +x x-ui.sh
 
@@ -158,9 +163,6 @@ systemctl daemon-reload
 systemctl enable x-ui
 systemctl start x-ui
 
-# 创建 VERSION 文件
-echo "v1.0.0" > $INSTALL_DIR/VERSION
-
 # 获取服务器 IP
 SERVER_IP=$(curl -s ifconfig.me || curl -s ip.sb || echo "YOUR_IP")
 
@@ -175,6 +177,7 @@ if systemctl is-active --quiet x-ui; then
     echo -e "面板地址: ${green}http://${SERVER_IP}:${SERVICE_PORT}${plain}"
     echo -e "用户名:   ${green}${ADMIN_USER}${plain}"
     echo -e "密码:     ${green}${ADMIN_PASS}${plain}"
+    echo -e "版本:     ${green}${LATEST_VERSION}${plain}"
     echo ""
 else
     echo -e "${red}安装失败，请检查日志${plain}"
