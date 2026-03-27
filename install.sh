@@ -143,8 +143,14 @@ wget -q -O /usr/bin/ncp-agent "https://github.com/DoBestone/NexCoreProxy-Agent/r
 }
 chmod +x /usr/bin/ncp-agent
 
-# 复制服务文件
-cp -f x-ui.service /etc/systemd/system/
+# 复制服务文件 (根据系统类型选择)
+if [[ "$OS" == "ubuntu" || "$OS" == "debian" ]]; then
+    cp -f x-ui.service.debian /etc/systemd/system/x-ui.service
+elif [[ "$OS" == "centos" || "$OS" == "rhel" || "$OS" == "fedora" ]]; then
+    cp -f x-ui.service.rhel /etc/systemd/system/x-ui.service
+else
+    cp -f x-ui.service.debian /etc/systemd/system/x-ui.service
+fi
 
 # 下载 x-ui 管理脚本
 wget -q -O /usr/bin/x-ui "https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh"
@@ -170,6 +176,15 @@ fi
 systemctl daemon-reload
 systemctl enable x-ui
 systemctl start x-ui
+
+# 安装 ncp-api
+echo -e "${yellow}安装 ncp-api...${plain}"
+wget -q -O $INSTALL_DIR/ncp-api "https://github.com/DoBestone/NexCoreProxy-Agent/releases/download/v1.0.0/ncp-api-linux-${ARCH}" || {
+    echo -e "${yellow}ncp-api 下载失败，跳过${plain}"
+}
+if [[ -f "$INSTALL_DIR/ncp-api" ]]; then
+    chmod +x $INSTALL_DIR/ncp-api
+fi
 
 # 生成 API Token
 API_TOKEN=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
