@@ -135,10 +135,18 @@ chmod +x x-ui bin/xray-linux-${ARCH}
 # 写入版本文件
 echo "$LATEST_VERSION" > $INSTALL_DIR/VERSION
 
+# 安装 ncp-agent 管理工具
+echo -e "${yellow}安装 ncp-agent...${plain}"
+wget -q -O /usr/bin/ncp-agent "https://github.com/DoBestone/NexCoreProxy-Agent/releases/download/v1.0.0/ncp-agent-linux-${ARCH}" || {
+    # 如果二进制不存在，使用 shell 脚本
+    wget -q -O /usr/bin/ncp-agent "https://raw.githubusercontent.com/DoBestone/NexCoreProxy-Agent/main/ncp-agent.sh"
+}
+chmod +x /usr/bin/ncp-agent
+
 # 复制服务文件
 cp -f x-ui.service /etc/systemd/system/
 
-# 下载管理脚本
+# 下载 x-ui 管理脚本
 wget -q -O /usr/bin/x-ui "https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh"
 chmod +x /usr/bin/x-ui
 chmod +x x-ui.sh
