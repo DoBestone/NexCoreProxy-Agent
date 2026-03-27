@@ -271,6 +271,39 @@ func cmdVersion() {
 	fmt.Printf("NexCoreProxy Agent: %s\n", getVersion())
 }
 
+func cmdGenToken() {
+	token := generateRandomString(32)
+	err := os.WriteFile(INSTALL_DIR+"/API_TOKEN", []byte(token), 0600)
+	if err != nil {
+		fmt.Printf("生成失败: %v\n", err)
+		return
+	}
+	fmt.Printf("✓ API Token 已生成: %s\n", token)
+	fmt.Printf("  存储位置: %s/API_TOKEN\n", INSTALL_DIR)
+}
+
+func cmdGetToken() {
+	data, err := os.ReadFile(INSTALL_DIR + "/API_TOKEN")
+	if err != nil {
+		fmt.Println("未生成 API Token，请执行 ncp-agent gen-token")
+		return
+	}
+	fmt.Println(strings.TrimSpace(string(data)))
+}
+
+func cmdResetToken() {
+	cmdGenToken()
+}
+
+func generateRandomString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
 func cmdUpdate() {
 	cmd := exec.Command("bash", "-c", "bash <(curl -Ls https://raw.githubusercontent.com/DoBestone/NexCoreProxy-Agent/main/update.sh)")
 	cmd.Stdout = os.Stdout

@@ -21,6 +21,12 @@ show_help() {
     echo "  restart             重启面板"
     echo "  restart-xray        重启 Xray"
     echo ""
+    echo "=== API 服务 ==="
+    echo "  api-start           启动 API 服务"
+    echo "  api-stop            停止 API 服务"
+    echo "  api-status          API 服务状态"
+    echo "  api-port [端口]      查看/设置 API 端口 (默认 54322)"
+    echo ""
     echo "=== 面板设置 ==="
     echo "  get-port            获取面板端口"
     echo "  set-port <端口>     设置面板端口"
@@ -44,10 +50,6 @@ show_help() {
     echo ""
     echo "=== 客户端管理 ==="
     echo "  list-clients <inbound_id>  列出入站客户端"
-    echo "  add-client <inbound_id> <email> <uuid>  添加客户端"
-    echo "  del-client <inbound_id> <email>  删除客户端"
-    echo "  enable-client <inbound_id> <email>  启用客户端"
-    echo "  disable-client <inbound_id> <email>  禁用客户端"
     echo ""
     echo "=== 系统管理 ==="
     echo "  version             查看版本"
@@ -59,8 +61,10 @@ show_help() {
     echo "  ncp-agent status"
     echo "  ncp-agent set-port 54321"
     echo "  ncp-agent list-inbounds"
-    echo "  ncp-agent list-clients 1"
-    echo "  ncp-agent gen-token"
+    echo "  ncp-agent api-start"
+    echo ""
+    echo "API 调用示例:"
+    echo "  curl -H 'X-API-Token: \$(ncp-agent get-token)' http://localhost:54322/api/status"
 }
 
 # 检查 sqlite3
@@ -419,6 +423,78 @@ cmd_reset_token() {
     cmd_gen_token
 }
 
+# ========== API 服务管理 ==========
+
+# 启动 API 服务
+cmd_api_start() {
+    if pgrep -f "ncp-api" > /dev/null; then
+        echo "API 服务已在运行"
+        return
+    fi
+    
+    # 检查 API 二进制是否存在
+    if [[ ! -f "$INSTALL_DIR/ncp-api" ]]; then
+        echo "错误: ncp-api 未安装"
+        echo "请重新运行安装脚本"
+        exit 1
+    fi
+    
+    # 后台启动
+    nohup $INSTALL_DIR/ncp-api > /tmp/ncp-api.log 2>&1 &
+    sleep 1
+    
+    if pgrep -f "ncp-api" > /dev/null; then
+        local port=$(cmd_api_port)
+        echo "✓ API 服务已启动"
+        echo "  端口: $port"
+        echo "  日志: /tmp/ncp-api.log"
+    else
+        echo "启动失败，查看日志: /tmp/ncp-api.log"
+        exit 1
+    fi
+}
+
+# 停止 API 服务
+cmd_api_stop() {
+    pkill -f "ncp-api"
+    echo "✓ API 服务已停止"
+}
+
+# API 服务状态
+cmd_api_status() {
+    if pgrep -f "ncp-api" > /dev/null; then
+        local pid=$(pgrep -f "ncp-api")
+        local port=$(cmd_api_port)
+        echo "API 服务: 运行中 (PID: $pid)"
+        echo "端口: $port"
+        echo ""
+        echo "测试连接:"
+        echo "  curl -H 'X-API-Token: \$(cat $INSTALL_DIR/API_TOKEN)' http://localhost:$port/api/status"
+    else
+        echo "API 服务: 未运行"
+    fi
+}
+
+# API 端口
+cmd_api_port() {
+    if [[ -n "$1" ]]; then
+        # 设置端口
+        check_sqlite
+        sqlite3 "$DB_FILE" "INSERT OR REPLACE INTO settings (key, value) VALUES ('apiPort', '$1');"
+        echo "✓ API 端口已设置为: $1"
+        echo "  需要重启 API 服务生效: ncp-agent api-stop && ncp-agent api-start"
+    else
+        # 获取端口
+        check_sqlite
+        local port=$(sqlite3 "$DB_FILE" "SELECT value FROM settings WHERE key='apiPort';" 2>/dev/null)
+        if [[ -z "$port" ]]; then
+            echo "54322"
+        else
+            echo "$port"
+        fi
+    fi
+}
+
 # 主入口
 case "$1" in
     status)       cmd_status ;;
@@ -436,6 +512,10 @@ case "$1" in
     gen-token)    cmd_gen_token ;;
     get-token)    cmd_get_token ;;
     reset-token)  cmd_reset_token ;;
+    api-start)    cmd_api_start ;;
+    api-stop)     cmd_api_stop ;;
+    api-status)   cmd_api_status ;;
+    api-port)     cmd_api_port "$2" ;;
     list-inbounds)  cmd_list_inbounds ;;
     get-inbound)  cmd_get_inbound "$2" ;;
     del-inbound)  cmd_del_inbound "$2" ;;
