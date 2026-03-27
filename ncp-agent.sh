@@ -29,6 +29,11 @@ show_help() {
     echo "  set-pass <密码>     设置管理员密码"
     echo "  gen-cert            生成自签名证书"
     echo ""
+    echo "=== API Token ==="
+    echo "  gen-token           生成 API Token"
+    echo "  get-token           获取 API Token"
+    echo "  reset-token         重置 API Token"
+    echo ""
     echo "=== 入站管理 ==="
     echo "  list-inbounds       列出所有入站"
     echo "  get-inbound <id>    查看入站详情"
@@ -55,6 +60,7 @@ show_help() {
     echo "  ncp-agent set-port 54321"
     echo "  ncp-agent list-inbounds"
     echo "  ncp-agent list-clients 1"
+    echo "  ncp-agent gen-token"
 }
 
 # 检查 sqlite3
@@ -390,6 +396,29 @@ cmd_version() {
     fi
 }
 
+# 生成 API Token
+cmd_gen_token() {
+    local token=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
+    echo "$token" > $INSTALL_DIR/API_TOKEN
+    chmod 600 $INSTALL_DIR/API_TOKEN
+    echo "✓ API Token 已生成: $token"
+    echo "  存储位置: $INSTALL_DIR/API_TOKEN"
+}
+
+# 获取 API Token
+cmd_get_token() {
+    if [[ -f "$INSTALL_DIR/API_TOKEN" ]]; then
+        cat $INSTALL_DIR/API_TOKEN
+    else
+        echo "未生成 API Token，请执行 ncp-agent gen-token"
+    fi
+}
+
+# 重置 API Token
+cmd_reset_token() {
+    cmd_gen_token
+}
+
 # 主入口
 case "$1" in
     status)       cmd_status ;;
@@ -404,6 +433,9 @@ case "$1" in
     set-user)     cmd_set_user "$2" ;;
     set-pass)     cmd_set_pass "$2" ;;
     gen-cert)     cmd_gen_cert "$2" ;;
+    gen-token)    cmd_gen_token ;;
+    get-token)    cmd_get_token ;;
+    reset-token)  cmd_reset_token ;;
     list-inbounds)  cmd_list_inbounds ;;
     get-inbound)  cmd_get_inbound "$2" ;;
     del-inbound)  cmd_del_inbound "$2" ;;

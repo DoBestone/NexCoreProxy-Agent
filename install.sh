@@ -171,6 +171,11 @@ systemctl daemon-reload
 systemctl enable x-ui
 systemctl start x-ui
 
+# 生成 API Token
+API_TOKEN=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
+echo "$API_TOKEN" > $INSTALL_DIR/API_TOKEN
+chmod 600 $INSTALL_DIR/API_TOKEN
+
 # 获取服务器 IP
 SERVER_IP=$(curl -s ifconfig.me || curl -s ip.sb || echo "YOUR_IP")
 
@@ -182,10 +187,13 @@ if systemctl is-active --quiet x-ui; then
     echo -e "${green}  安装成功!${plain}"
     echo -e "${green}========================================${plain}"
     echo ""
-    echo -e "面板地址: ${green}http://${SERVER_IP}:${SERVICE_PORT}${plain}"
-    echo -e "用户名:   ${green}${ADMIN_USER}${plain}"
-    echo -e "密码:     ${green}${ADMIN_PASS}${plain}"
-    echo -e "版本:     ${green}${LATEST_VERSION}${plain}"
+    echo -e "面板地址:  ${green}http://${SERVER_IP}:${SERVICE_PORT}${plain}"
+    echo -e "用户名:    ${green}${ADMIN_USER}${plain}"
+    echo -e "密码:      ${green}${ADMIN_PASS}${plain}"
+    echo -e "API Token: ${green}${API_TOKEN}${plain}"
+    echo -e "版本:      ${green}${LATEST_VERSION}${plain}"
+    echo ""
+    echo -e "${yellow}提示: 使用 'ncp-agent' 命令管理节点${plain}"
     echo ""
 else
     echo -e "${red}安装失败，请检查日志${plain}"
